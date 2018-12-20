@@ -19,7 +19,7 @@
 //* sample plugin MTQQ topic
 #define MQTT_TOPIC_PLUGIN1          "PLUGIN1"
 //* Sample plugin reporting interval (0 no reporting)
-#define PLUGIN_REPORT_EVERY        5
+#define PLUGIN_REPORT_EVERY        30
 //* Sample plugin parameter values
 #define PLUGIN_PARAMETER_1         0
 
