@@ -8,7 +8,7 @@
 //* -------------------------------------------------------------------------
 //*  Here put espurna plugin specific overrides
 #define RELAY_PROVIDER          RELAY_PROVIDER_HW655
-#define SERIAL_BAUDRATE         9600 
+#define SERIAL_BAUDRATE         115200 
 
 //---------------------------------------------------------------------------
 //* Plugin defines

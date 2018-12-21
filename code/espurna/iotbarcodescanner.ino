@@ -351,6 +351,8 @@ void iotBarcodeScannerSetup()
     //*    plugin setup code
     //* myPluginSetup() is called by custom.h - espurna plugin entry point
 
+    debugSend("Start\n");
+
     _plugin1_enabled = getSetting("PLG1_EN", IOTBARCODESCANNER_ENABLE).toInt() == 1;
 
     
@@ -385,8 +387,9 @@ void iotBarcodeScannerSetup()
 
     if(wifiConnected()){
         loginAndGetToken("iot@pwc.com.iot", "Esp8266012019bustHJp4OZBgXH5flNxAwReer", instanceURL, token);
-        DEBUG_MSG_P(PSTR("Token:\n%s\n---\n"), token);
-        DEBUG_MSG_P(PSTR("Instance URL: %s\n---\n"), instanceURL);
+        debugSend("Start\n");
+        debugSend("Token:\n%s\n---\n", token);
+        debugSend("Instance URL: %s\n---\n", instanceURL);
     } else {
         DEBUG_MSG_P(PSTR("!!! WiFi not connected!\n"));
     }
