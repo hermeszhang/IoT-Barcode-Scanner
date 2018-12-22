@@ -201,7 +201,7 @@ int createCustomerVisitEvent(char *customerNumber, char *productCode, bool check
             http.addHeader("Content-Length", String(payload.length()));
 
             
-            debugSend("Sending POST request to %s\npayload:%s...\n",endpointURL.c_str(),payload.c_str());
+            debugSend("Sending POST request to %s\npayload:%s\n",endpointURL.c_str(),payload.c_str());
             httpCode = http.POST(payload);
         } else {
             debugSend("HTTP connection failed. Error:%d %s\n",httpCode,http.errorToString(httpCode).c_str());
@@ -229,7 +229,7 @@ int createCustomerVisitEvent(char *customerNumber, char *productCode, bool check
                 JsonObject &root2 = jsonBuffer.parseObject(response);
                 if (!root2.success())
                 {
-                    debugSend("parseObject() failed");
+                    debugSend("parseObject() failed\n");
                 }
                 else
                 {
@@ -237,13 +237,13 @@ int createCustomerVisitEvent(char *customerNumber, char *productCode, bool check
                     if (successFlag)
                     {
                         const char *id = root2["id"];
-                        debugSend("Event succesfully created. Id: %s",id);
+                        debugSend("Event succesfully created. Id: %s\n",id);
                         
                     }
                     else
                     {
                         const char *error = root2["errors"][0];
-                        debugSend("Event creation failed.Error: ");
+                        debugSend("Event creation failed.Error:\n");
                         debugSend(error);
                     }
                 }
