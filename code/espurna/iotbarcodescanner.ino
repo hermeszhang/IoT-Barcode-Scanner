@@ -27,7 +27,8 @@ Plugin Copyright
 
 #include <ESP8266HTTPClient.h>
 
-#include <WiFiClientSecure.h>
+//#include <WiFiClientSecure.h>
+#include <WiFiClientSecureBearSSL.h>
 #include <ArduinoJson.h>
 //#include <otherPluginIncludeFiles>
 
@@ -46,6 +47,7 @@ unsigned long _pluginCounter = PLUGIN_PARAMETER_1;
 char instanceURL[512];
 char token[128];
 bool sfdcAuthorized = false;
+
 
 #include <WiFiClient.h>
 //*----------------------------------------------------------------------------
@@ -147,6 +149,119 @@ int loginAndGetToken(String user, String password, char *instanceURL, char *toke
     return 0;
 }
 
+int createCustomerVisitEvent(char *customerNumber, char *productCode, bool checkout, String instanceURL, String token)
+{
+    StaticJsonBuffer<512> jsonBuffer;
+    String RESTpath = "/services/data/v44.0/sobjects/CustomerVisit__e/";
+    String authHeader = "Bearer " + token;
+    int httpCode;
+    const uint8_t fingerprint[20] = {0x5A, 0xCF, 0xFE, 0xF0, 0xF1, 0xA6, 0xF4, 0x5F, 0xD2, 0x11, 0x11, 0xC6, 0x1D, 0x2F, 0x0E, 0xBC, 0x39, 0x8D, 0x50, 0xE0};
+    String endpointURL = instanceURL + RESTpath;
+    //WiFiClientSecure client;
+    
+    
+    String payload;
+ 
+    String response;
+    String headers;
+
+
+    
+    if (wifiConnected())
+    {
+        String host = instanceURL.substring(8);
+
+        JsonObject &root = jsonBuffer.createObject();
+        root["DeviceId__c"] = WiFi.macAddress();
+        root["AccountNumber__c"] = customerNumber;
+        root["ProductCode__c"] = productCode;
+        root["Checkout__c"] = checkout;
+
+        root.printTo(payload);
+
+        debugSend("Connecting to host: %s\n", host.c_str());
+
+        //std::unique_ptr<BearSSL::WiFiClientSecure>client(new BearSSL::WiFiClientSecure);
+
+    //client->setFingerprint(fingerprint);
+
+        HTTPClient http;
+
+        if (http.begin(endpointURL, "C1 ED CA 17 64 38 CC 76 CA 3E FE E8 CF CD 71 B4 6C A7 D8 EB"))
+        //if (BearSSL::http.begin(*client, endpointURL)) 
+        //‎ba 69 22 06 ca b4 1d b9 0d 01 ab 1f 98 bb 1f 53 37 64 95 98
+        // from debug: C1 ED CA 17 64 38 CC 76 CA 3E FE E8 CF CD 71 B4 6C A7 D8 EB
+       
+        //if (http.begin(endpointURL, "BA 69 22 06 CA B4 1D B9 0D 01 AB 1F 98 BB 1F 53 37 64 95 98"))
+
+        {
+
+            http.addHeader("Content-Type", "application/json;charset=utf-8");
+            http.addHeader("Authorization", authHeader);
+            http.addHeader("Content-Length", String(payload.length()));
+
+            
+            debugSend("Sending POST request to %s\npayload:%s...\n",endpointURL.c_str(),payload.c_str());
+            httpCode = http.POST(payload);
+        } else {
+            debugSend("HTTP connection failed. Error:%d %s\n",httpCode,http.errorToString(httpCode).c_str());
+            return -8;
+        }
+
+        
+        //Serial.println(customerNumber);
+        //Serial.println(payload);
+
+        if (httpCode > 0)
+        {
+            // HTTP header has been send and Server response header has been handled
+            //Serial.printf("[HTTP] GET... code: %d\n", httpCode);
+            DEBUG_MSG_P(PSTR("[PLUGIN] [HTTP] GET... code: %d\n\n"), httpCode);
+
+            // file found at server
+            if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_CREATED)
+            {
+                response = http.getString();
+                debugSend("[PLUGIN] Payload length: %d\n\n", response.length());
+
+                debugSend("Rensponse payload:\n%s\n", response.c_str());
+
+                JsonObject &root2 = jsonBuffer.parseObject(response);
+                if (!root2.success())
+                {
+                    debugSend("parseObject() failed");
+                }
+                else
+                {
+                    bool successFlag = root2["success"];
+                    if (successFlag)
+                    {
+                        const char *id = root2["id"];
+                        debugSend("Event succesfully created. Id: %s",id);
+                        
+                    }
+                    else
+                    {
+                        const char *error = root2["errors"][0];
+                        debugSend("Event creation failed.Error: ");
+                        debugSend(error);
+                    }
+                }
+            }
+        }
+        else
+        {
+            //Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+            debugSend(PSTR("[PLUGIN] [HTTP] POST... failed, error: %s\n"), http.errorToString(httpCode).c_str());
+            return -2;
+        }
+        http.end();
+
+        return 0;
+    } 
+    
+}
+
 //* Plugin loop helper function(s)
 //*------------------------------
 void _plugin1Function1()
@@ -168,6 +283,8 @@ int result;
             if(!sfdcAuthorized){
                 DEBUG_MSG_P(PSTR("SFDC Authorization in progress...\n"));
                 result = loginAndGetToken("iot@pwc.com.iot", "Esp8266012019bustHJp4OZBgXH5flNxAwReer", instanceURL, token);
+                DEBUG_MSG_P(PSTR("Token:\n%s\n---\n"), token);
+                DEBUG_MSG_P(PSTR("Instance URL: %s\n---\n"), instanceURL);
                 if(result == 0){
                     sfdcAuthorized = true;
                 } else {
@@ -179,11 +296,10 @@ int result;
         {
             DEBUG_MSG_P(PSTR("WiFi Not Connected!\n"));
         }
-
+        createCustomerVisitEvent("123456", "ABC1234", false, instanceURL, token);
         //wifiDebug(WIFI_STA);
         
-        DEBUG_MSG_P(PSTR("Token:\n%s\n---\n"), token);
-        DEBUG_MSG_P(PSTR("Instance URL: %s\n---\n"), instanceURL);
+        
         //testHttpClient();
     }
 #endif
